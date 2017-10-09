@@ -1,0 +1,39 @@
+#
+version: '3.2'
+services:
+  interlok:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mcwarman/interlok-mail-to-mail:snapshot
+    environment:
+      JVM_ARGS: -Xmx512m
+    ports:
+      - 8080:8080
+      - 5555:5555
+    links:
+      - mail
+      - mysql
+    volumes:
+      - ./templates/youve_got_mail.xml:/opt/interlok/ui-resources/config-templates/workflows/youve_got_mail.xml
+  mail:
+    image: greenmail/standalone:1.5.5
+    hostname: mail.local
+    user: root
+    environment:
+      GREENMAIL_OPTS: '-Dgreenmail.setup.test.all -Dgreenmail.verbose -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=interlok:password@adaptris.net,matthew:password@adaptris.net'
+    ports:
+      - 3025:3025
+      - 3143:3143
+  mysql:
+    image: mysql:5.7
+    hostname: mysql.local
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: products
+      MYSQL_USER: backend
+      MYSQL_PASSWORD: backend
+    # Mount and execute our SQL files.
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d
+

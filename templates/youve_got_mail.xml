@@ -1,0 +1,63 @@
+<standard-workflow 
+         tmpl-alias="Standard Workflow" 
+         tmpl-alias-value="standard-workflow" 
+         tmpl-author="Adaptris" 
+         tmpl-class-name="com.adaptris.core.StandardWorkflow" 
+         tmpl-created="2017-10-09T08:00:00" 
+         tmpl-desc="Reads and Replies to emails" 
+         tmpl-keywords="mail" 
+         tmpl-name="You've got mail!" 
+         tmpl-target-version="3.6.4-RELEASE" 
+         tmpl-title="You've got mail!"
+         tmpl-type="workflow" tmpl-wizard="true"
+         wizard-mail-order="0" wizard-mail-desc="Configure the mail connectivity"
+>
+  <consumer class="raw-mail-consumer">
+    <destination class="configured-consume-destination">
+      <destination wizard-key="pop3-destination" wizard-desc="POP3 Destination" wizard-step="mail" wizard-order="0" wizard-type="string"/>
+      <filter-expression wizard-key="pop3-filter" wizard-desc="POP3 Filter" wizard-step="mail" wizard-order="1" wizard-type="string">SUBJECT=[Rr]eport</filter-expression>
+    </destination>
+    <poller class="fixed-interval-poller">
+      <poll-interval>
+        <unit>SECONDS</unit>
+        <interval>10</interval>
+      </poll-interval>
+    </poller>
+    <header-handler class="mail-headers-as-metadata">
+      <header-filter class="regex-metadata-filter">
+        <include-pattern>From</include-pattern>
+        <include-pattern>Subject</include-pattern>
+      </header-filter>
+    </header-handler>
+    <delete-on-receive>true</delete-on-receive>
+  </consumer>
+  <service-collection class="service-list">
+    <services>
+      <!-- Data extractions and transformation -->
+      <add-formatted-metadata-service>
+        <format-string>RE: %s</format-string>
+        <argument-metadata-key>Subject</argument-metadata-key>
+        <metadata-key>emailsubject</metadata-key>
+      </add-formatted-metadata-service>
+    </services>
+  </service-collection>
+  <producer class="multi-attachment-smtp-producer">
+    <username wizard-key="smtp-username" wizard-desc="SMTP Username" wizard-step="mail" wizard-order="3" wizard-type="string"/>
+    <password wizard-key="smtp-password" wizard-desc="SMTP Password" wizard-step="mail" wizard-order="4" wizard-type="password"/>
+    <destination class="metadata-destination">
+      <key>From</key>
+    </destination>
+    <smtp-url wizard-key="smtp-url" wizard-desc="SMTP URL" wizard-step="mail" wizard-order="2" wizard-type="string"/>
+    <mail-creator class="mail-xml-content-creator">
+      <attachment-handler class="mail-xml-attachment-handler">
+        <xpath>/document/attachment</xpath>
+        <filename-xpath>@filename</filename-xpath>
+        <encoding-xpath>@encoding</encoding-xpath>
+      </attachment-handler>
+      <body-handler class="mail-xml-body-handler">
+        <xpath>/document/content</xpath>
+        <content-type>text/plain</content-type>
+      </body-handler>
+    </mail-creator>
+  </producer>
+</standard-workflow>

@@ -1,0 +1,12 @@
+<Results>
+  <Row>
+    <id>1</id>
+    <product>blue shoes</product>
+    <description>They are blue!</description>
+  </Row>
+  <Row>
+    <id>2</id>
+    <product>not blue shoes</product>
+    <description>They are not blue!</description>
+  </Row>
+</Results>

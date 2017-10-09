@@ -1,0 +1,123 @@
+<adapter>
+  <unique-id>mail-to-mail</unique-id>
+  <shared-components>
+    <connections>
+      <jdbc-pooled-connection>
+        <unique-id>mysql</unique-id>
+        <test-statement>SELECT DATABASE(), VERSION(), NOW(), USER();</test-statement>
+        <driver-imp>com.mysql.jdbc.Driver</driver-imp>
+        <username>backend</username>
+        <password>backend</password>
+        <connect-url>jdbc:mysql://mysql:3306/products</connect-url>
+      </jdbc-pooled-connection>
+    </connections>
+  </shared-components>
+  <channel-list>
+    <channel>
+      <unique-id>channel</unique-id>
+      <consume-connection class="null-connection"/>
+      <produce-connection class="null-connection" />
+      <workflow-list>
+        <standard-workflow>
+          <unique-id>workflow</unique-id>
+          <consumer class="raw-mail-consumer">
+            <destination class="configured-consume-destination">
+              <destination>imap://interlok:password@mail:3143/INBOX</destination>
+              <filter-expression>SUBJECT=[Rr]eport</filter-expression>
+            </destination>
+            <poller class="fixed-interval-poller">
+              <poll-interval>
+                <unit>SECONDS</unit>
+                <interval>10</interval>
+              </poll-interval>
+            </poller>
+            <header-handler class="mail-headers-as-metadata">
+              <header-filter class="regex-metadata-filter">
+                <include-pattern>From</include-pattern>
+                <include-pattern>Subject</include-pattern>
+              </header-filter>
+            </header-handler>
+            <delete-on-receive>true</delete-on-receive>
+          </consumer>
+          <service-collection class="service-list">
+            <services>
+              <log-message-service />
+              <jdbc-data-query-service>
+                <connection class="shared-connection">
+                  <lookup-name>mysql</lookup-name>
+                </connection>
+                <statement-creator class="jdbc-configured-sql-statement">
+                  <statement>select id, product, description from products</statement>
+                </statement-creator>
+                <result-set-translator class="jdbc-xml-payload-translator">
+                  <preserve-original-message>false</preserve-original-message>
+                </result-set-translator>
+              </jdbc-data-query-service>
+              <xml-transform-service>
+                <url>file:///opt/interlok/config/db_to_csv.xslt</url>
+              </xml-transform-service>
+              <payload-to-metadata>
+                <key>csv1</key>
+                <metadata-target>Standard</metadata-target>
+                <encoding>Base64</encoding>
+              </payload-to-metadata>
+              <add-metadata-service>
+                <metadata-element>
+                  <key>content</key>
+                  <value>Please find the attached report.</value>
+                </metadata-element>
+                <metadata-element>
+                  <key>csv1_filename</key>
+                  <value>report.csv</value>
+                </metadata-element>
+              </add-metadata-service>
+              <payload-from-metadata-service>
+                <metadata-tokens>
+                  <key-value-pair>
+                    <key>content</key>
+                    <value>__CONTENT__</value>
+                  </key-value-pair>
+                </metadata-tokens>
+                <template><![CDATA[<document><content>__CONTENT__</content></document>]]></template>
+              </payload-from-metadata-service>
+              <xml-transform-service>
+                <url>file:///opt/interlok/config/add_attachments.xslt</url>
+                <transform-parameter class="xml-transform-string-parameter">
+                  <metadata-filter>
+                    <include-pattern>^csv.*</include-pattern>
+                  </metadata-filter>
+                </transform-parameter>
+              </xml-transform-service>
+              <add-formatted-metadata-service>
+                <format-string>RE: %s</format-string>
+                <argument-metadata-key>Subject</argument-metadata-key>
+                <metadata-key>emailsubject</metadata-key>
+              </add-formatted-metadata-service>
+              <log-message-service />
+            </services>
+          </service-collection>
+          <producer class="multi-attachment-smtp-producer">
+            <username>interlok</username>
+            <password>password</password>
+            <from><![CDATA[Interlok <interlok@adaptris.net>]]></from>
+            <destination class="metadata-destination">
+              <key>From</key>
+            </destination>
+            <smtp-url>smtp://mail:3025</smtp-url>
+            <mail-creator class="mail-xml-content-creator">
+              <attachment-handler class="mail-xml-attachment-handler">
+                <xpath>/document/attachment</xpath>
+                <filename-xpath>@filename</filename-xpath>
+                <encoding-xpath>@encoding</encoding-xpath>
+              </attachment-handler>
+              <body-handler class="mail-xml-body-handler">
+                <xpath>/document/content</xpath>
+                <content-type>text/plain</content-type>
+              </body-handler>
+            </mail-creator>
+          </producer>
+        </standard-workflow>
+      </workflow-list>
+    </channel>
+  </channel-list>
+</adapter>
