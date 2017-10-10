@@ -14,8 +14,8 @@
 >
   <consumer class="raw-mail-consumer">
     <destination class="configured-consume-destination">
-      <destination wizard-key="pop3-destination" wizard-desc="POP3 Destination" wizard-step="mail" wizard-order="0" wizard-type="string"/>
-      <filter-expression wizard-key="pop3-filter" wizard-desc="POP3 Filter" wizard-step="mail" wizard-order="1" wizard-type="string">SUBJECT=[Rr]eport</filter-expression>
+      <destination wizard-key="imap-pop3-destination" wizard-desc="IMAP/POP3 Destination" wizard-step="mail" wizard-order="0" wizard-type="string"/>
+      <filter-expression wizard-key="imap-pop3-filter" wizard-desc="IMAP/POP3 Filter" wizard-step="mail" wizard-order="1" wizard-type="string">SUBJECT=[Rr]eport</filter-expression>
     </destination>
     <poller class="fixed-interval-poller">
       <poll-interval>
